@@ -3,6 +3,98 @@ import { useMemo } from "react"
 import NFTBox from "./NFTBox"
 import Link from "next/link"
 
+interface NFTItem {
+    rindexerId: string;
+    seller: string;
+    nftAddress: string;
+    price: string;
+    tokenId: string;
+    contractAddress: string;
+    txHash: string;
+    blockNumber: string;
+}
+
+interface BoughtCancelled {
+    nftAddress: string;
+    tokenId: string;
+}
+
+interface NFTQueryResponse {
+    data: {
+        allItemListeds: {
+            nodes: NFTItem[]
+        },
+        allItemBoughts: {
+            nodes: NFTItem[]
+        },
+        allItemCanceleds: {
+            nodes: NFTItem[]
+        }
+    }
+}
+
+const GET_RECENT_NFTS = `
+  query GetMarketplaceData {
+    # Fetch the latest 20 listed items, newest first
+    allItemListeds(first: 20, orderBy: [BLOCK_NUMBER_DESC, TX_INDEX_DESC]) {
+      nodes {
+        rindexerId      # Unique ID from rindexer
+        seller
+        nftAddress
+        price
+        tokenId
+        contractAddress # Smart contract emitting the event
+        txHash
+        blockNumber
+      }
+    }
+    # Fetch all cancellation events (for filtering)
+    allItemCanceleds { # Matches the event name indexed by rindexer
+      nodes {
+        nftAddress
+        tokenId
+      }
+    }
+    # Fetch all purchase events (for filtering)
+    allItemBoughts { # Matches the event name indexed by rindexer
+      nodes {
+        tokenId
+        nftAddress
+      }
+    }
+  }
+`;
+
+async function fetchNFTs() { // We'll add type safety next
+  const response = await fetch('/api/graphql', { // Target the proxied endpoint
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json', // Essential for GraphQL
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({
+      query: GET_RECENT_NFTS, // Pass our defined GraphQL query string
+      // variables: {} // Add if your query uses GraphQL variables
+    }),
+  });
+
+  if (!response.ok) {
+    // Handle HTTP errors (e.g., network issues, server errors)
+    console.error("HTTP Error:", response.status, response.statusText);
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const jsonResponse = await response.json();
+
+  if (jsonResponse.errors) {
+      // Handle GraphQL errors (e.g., syntax errors in the query)
+      console.error("GraphQL Errors:", jsonResponse.errors);
+      throw new Error(`GraphQL error: ${jsonResponse.errors.map((e: any) => e.message).join(', ')}`);
+  }
+  
+  return jsonResponse; // Return the parsed JSON data (contains a 'data' key)
+}
+
 // Main component that uses the custom hook
 export default function RecentlyListedNFTs() {
     return (
