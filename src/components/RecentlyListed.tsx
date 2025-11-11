@@ -95,6 +95,62 @@ async function fetchNFTs() { // We'll add type safety next
   return jsonResponse; // Return the parsed JSON data (contains a 'data' key)
 }
 
+function useRecentlyListNFTs() {
+  const { data, isLoading, error } = useQuery<NFTQueryResponse>({
+    queryKey: ["rrecentNFTs"],
+    queryFn: fetchNFTs
+  })
+
+// useMemo for cache this list of NFTs
+const nftDataList = useMemo(() => {
+  // If data hasn't loaded yet, or the nested structure is missing, return empty.
+  // Optional chaining (?.) provides safety against runtime errors.
+  if (!data) {
+    return [];
+  }
+
+  // Create Sets for efficient O(1) average time complexity lookups.
+  // Use unique identifiers combining address and token ID.
+  const boughtNFTs = new Set<string>();
+  data.data.allItemBoughts?.nodes.forEach((item) => {
+    if (item.nftAddress && item.tokenId) {
+      boughtNFTs.add(`${item.nftAddress}-${item.tokenId}`);
+    }
+  });
+
+  const cancelledNFTs = new Set<string>();
+  data.data.allItemCanceleds?.nodes.forEach((item) => {
+    if (item.nftAddress && item.tokenId) {
+      cancelledNFTs.add(`${item.nftAddress}-${item.tokenId}`);
+    }
+  });
+  
+  // Filter the listed NFTs. Keep only those NOT in the bought or cancelled sets.
+  const activeNfts = data.data.allItemListeds.nodes.filter((item) => {
+    if (!item.nftAddress || !item.tokenId) return false; // Skip incomplete items
+      const key = `${item.nftAddress}-${item.tokenId}`;
+      return !boughtNFTs.has(key) && !cancelledNFTs.has(key);
+    });
+  
+    // Optional: Limit the number of results if needed
+    const recentActiveNfts = activeNfts.slice(0, 100);
+
+    // Map the filtered data to the structure expected by our UI component (e.g., NFTBox).
+    // Ensure prop names match what the component expects (e.g., contractAddress vs nftAddress).
+    return recentActiveNfts.map((nft) => ({
+      tokenId: nft.tokenId,
+      contractAddress: nft.nftAddress, // Mapping nftAddress to contractAddress prop
+      price: nft.price,
+      seller: nft.seller, // Include other needed props
+    }));
+
+    // The dependency array tells useMemo to recompute ONLY when 'data' changes.
+  }, [data]);
+
+  // Return the memoized list and the query states.
+  return { isLoading, error, nftDataList };
+}
+
 // Main component that uses the custom hook
 export default function RecentlyListedNFTs() {
     return (
@@ -110,14 +166,21 @@ export default function RecentlyListedNFTs() {
             <h2 className="text-2xl font-bold mb-6">Recently Listed NFTs</h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                <img
-                    src="/placeholder.png"
-                    alt={`NFT`}
-                    className="w-full h-auto max-h-96 object-contain bg-zinc-50"
-                    onError={() => {
-                        console.error("Error loading NFT image")
-                    }}
-                />
+                {nftDataList.map(nft => (
+                  <Link
+                    href={`/buy-nft/${nft.contractAddress}/${nft.tokenId}`}
+                    key={`${nft.contractAddress}-${nft.tokenId}-link`}
+                  >
+                    <NFTBox
+                      // React requires a unique key for each item in a list for efficient updates.
+                      key={`${nft.contractAddress}-${nft.tokenId}`}
+                      tokenId={nft.tokenId}
+                      contractAddress={nft.contractAddress}
+                      price={nft.price}
+                      // Pass any other required props to NFTBox
+                    />
+                  </Link>
+                ))}
             </div>
         </div>
     )
