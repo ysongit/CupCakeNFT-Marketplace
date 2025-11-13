@@ -7,9 +7,6 @@ dependencies:
   '@tanstack/react-query':
     specifier: ^5.69.0
     version: 5.69.0(react@19.0.0)
-  '@types/uuid':
-    specifier: ^10.0.0
-    version: 10.0.0
   '@wagmi/core':
     specifier: ^2.16.7
     version: 2.16.7(@types/react@19.0.0)(react@19.0.0)(typescript@5.0.2)(use-sync-external-store@1.4.0)(viem@2.0.0)
@@ -51,6 +48,9 @@ devDependencies:
   '@types/react-dom':
     specifier: ^19
     version: 19.0.0
+  '@types/uuid':
+    specifier: ^10.0.0
+    version: 10.0.0
   autoprefixer:
     specifier: ^10.4.21
     version: 10.4.21(postcss@8.5.6)
@@ -2311,7 +2311,7 @@ packages:
 
   /@types/uuid@10.0.0:
     resolution: {integrity: sha512-7gqG38EyHgyP1S+7+xomFtL+ZNHcKv6DwNaCZmJmo1vgMugyF3TCnXVg4t1uk89mLNwnLtnY3TpOpCOyp1/xHQ==}
-    dev: false
+    dev: true
 
   /@vanilla-extract/css@1.15.5:
     resolution: {integrity: sha512-N1nQebRWnXvlcmu9fXKVUs145EVwmWtMD95bpiEKtvehHDpUhmO1l2bauS7FGYKbi3dU1IurJbGpQhBclTr1ng==}
